@@ -122,6 +122,7 @@ const TasksPage = () => {
             )}
 
             <TaskModal
+                key={isModalOpen ? editingTask?._id ?? 'new' : 'closed'}
                 isOpen={isModalOpen}
                 onClose={() => {
                     setIsModalOpen(false);

@@ -1,25 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import { validateTask, sanitizeInput } from '../services/api';
 
 const TaskModal = ({ isOpen, onClose, onSubmit, task = null }) => {
+  // The parent remounts this component (via `key`) for each task, so the
+  // initial state can be derived from props without a syncing effect.
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
+    title: task?.title || '',
+    description: task?.description || '',
   });
   const [errors, setErrors] = useState({});
-
-  useEffect(() => {
-    if (task) {
-      setFormData({
-        title: task.title || '',
-        description: task.description || '',
-      });
-    } else {
-      setFormData({ title: '', description: '' });
-    }
-    setErrors({});
-  }, [task, isOpen]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;

@@ -1,6 +1,10 @@
-const API_BASE_URL = 'http://localhost:5000/api';
+// Relative by default: the Vite dev server and the nginx container both proxy /api to the backend.
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
-const AUTH_CREDENTIALS = btoa('admin:password123');
+// Demo-only static Basic Auth credentials (they ship in the JS bundle; must match the backend).
+const AUTH_CREDENTIALS = btoa(
+  `${import.meta.env.VITE_AUTH_USERNAME || 'admin'}:${import.meta.env.VITE_AUTH_PASSWORD || 'password123'}`
+);
 
 const apiRequest = async (endpoint, options = {}) => {
   const config = {
