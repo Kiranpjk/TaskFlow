@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm test
+
+  frontend:
+    name: Frontend lint and build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+
+  compose-smoke:
+    name: Docker Compose smoke test
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start stack and wait for healthchecks
+        run: docker compose up -d --build --wait --wait-timeout 180
+      - name: Check backend health
+        run: curl -fsS http://localhost:5000/health
+      - name: Create and list a task through nginx
+        run: |
+          curl -fsS -u admin:password123 -H 'Content-Type: application/json' \
+            -d '{"title":"CI task","description":"created by smoke test"}' \
+            http://localhost:8080/api/tasks
+          curl -fsS -u admin:password123 http://localhost:8080/api/tasks | grep -q 'CI task'
+          curl -fsS -u admin:password123 http://localhost:8080/api/logs | grep -q 'Create Task'
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose logs
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
