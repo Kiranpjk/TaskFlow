@@ -1,36 +1,40 @@
-import dotenv from 'dotenv';
+import crypto from 'node:crypto';
+import config from '../config.js';
 
-dotenv.config();
+const unauthorized = (res) =>
+  res.status(401).json({
+    error: 'Unauthorized access. Please provide valid credentials.'
+  });
+
+// Constant-time string comparison to avoid leaking credentials via timing.
+const safeEqual = (a, b) => {
+  const bufA = Buffer.from(a, 'utf8');
+  const bufB = Buffer.from(b, 'utf8');
+  return bufA.length === bufB.length && crypto.timingSafeEqual(bufA, bufB);
+};
 
 const basicAuth = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Basic ')) {
-    return res.status(401).json({
-      error: 'Unauthorized access. Please provide valid credentials.'
-    });
+    return unauthorized(res);
   }
 
-  try {
-    const base64Credentials = authHeader.split(' ')[1];
-    const credentials = Buffer.from(base64Credentials, 'base64').toString('ascii');
-    const [username, password] = credentials.split(':');
-
-    const validUsername = process.env.AUTH_USERNAME || 'admin';
-    const validPassword = process.env.AUTH_PASSWORD || 'password123';
-
-    if (username === validUsername && password === validPassword) {
-      next();
-    } else {
-      return res.status(401).json({
-        error: 'Unauthorized access. Please provide valid credentials.'
-      });
-    }
-  } catch (error) {
-    return res.status(401).json({
-      error: 'Unauthorized access. Please provide valid credentials.'
-    });
+  const credentials = Buffer.from(authHeader.slice(6), 'base64').toString('utf8');
+  // Split on the first colon only: passwords may contain ':'.
+  const sep = credentials.indexOf(':');
+  if (sep === -1) {
+    return unauthorized(res);
   }
+  const username = credentials.slice(0, sep);
+  const password = credentials.slice(sep + 1);
+
+  const userOk = safeEqual(username, config.authUsername);
+  const passOk = safeEqual(password, config.authPassword);
+  if (userOk && passOk) {
+    return next();
+  }
+  return unauthorized(res);
 };
 
 export default basicAuth;

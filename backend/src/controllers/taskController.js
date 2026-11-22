@@ -1,18 +1,20 @@
 import Task from '../models/Task.js';
 import AuditLog from '../models/AuditLog.js';
 import { validationResult } from 'express-validator';
+import { parsePagination, escapeRegex } from '../utils/pagination.js';
 
 export const getTasks = async (req, res) => {
     try {
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 5;
-        const search = req.query.search || '';
+        const { page, limit, skip } = parsePagination(req.query, 5);
+        const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+        // Escape user input so "(" or ".*" are matched literally (and can't crash the regex).
+        const pattern = escapeRegex(search);
 
         const searchQuery = search
             ? {
                 $or: [
-                    { title: { $regex: search, $options: 'i' } },
-                    { description: { $regex: search, $options: 'i' } }
+                    { title: { $regex: pattern, $options: 'i' } },
+                    { description: { $regex: pattern, $options: 'i' } }
                 ]
             }
             : {};
@@ -21,7 +23,7 @@ export const getTasks = async (req, res) => {
 
         const tasks = await Task.find(searchQuery)
             .sort({ createdAt: -1 })
-            .skip((page - 1) * limit)
+            .skip(skip)
             .limit(limit);
 
         res.json({

@@ -1,16 +1,15 @@
 import AuditLog from '../models/AuditLog.js';
+import { parsePagination } from '../utils/pagination.js';
 
 export const getLogs = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const { page, limit, skip } = parsePagination(req.query, 10);
 
     const total = await AuditLog.countDocuments();
 
     const logs = await AuditLog.find()
-      .populate('taskId', 'title')
       .sort({ timestamp: -1 })
-      .skip((page - 1) * limit)
+      .skip(skip)
       .limit(limit);
 
     res.json({
