@@ -119,6 +119,10 @@ GitHub Actions workflows in `.github/workflows/`:
 
 There is no deployment target: "deploy" here means images published to GHCR.
 
+## Security
+
+Dependency audit (Nov 2026): `npm audit` went from 21 advisories to 0 (frontend 14 → 0, backend 7 → 0, including 2 critical), all fixed with `npm audit fix` (lockfile updates only, no major upgrades).
+
 ## API
 
 All `/api` endpoints require a Basic Auth header, e.g. `Authorization: Basic YWRtaW46cGFzc3dvcmQxMjM=` for `admin:password123`.
